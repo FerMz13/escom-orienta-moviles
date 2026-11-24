@@ -105,3 +105,20 @@ Para clonar, compilar y ejecutar este proyecto en cualquier computadora desde ce
 Abre tu terminal (PowerShell o CMD) y ejecuta el siguiente comando para verificar que todo esté configurado correctamente:
 ```bash
 flutter doctor
+```
+
+---
+
+## Cuenta de usuario y cumplimiento DAMN-20271
+
+Desde la revisión DAMN-20271 la app incluye **autenticación local** (registro, inicio de sesión,
+perfil con avatar por cámara/galería, recuperación por pregunta de seguridad y cierre de sesión),
+**notificaciones locales** de recordatorio de clase y **ubicación GPS** opcional. Todo funciona
+**sin conexión**: las contraseñas se guardan con hash SHA-256 + sal y el token de sesión en el
+almacenamiento seguro del sistema.
+
+- Resumen de cumplimiento por requerimiento: [`CAMBIOS_DAMN.md`](CAMBIOS_DAMN.md)
+- Diagramas UML (arquitectura, clases, secuencia): [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)
+
+> Tras clonar, ejecuta `flutter pub get` para instalar las dependencias nuevas
+> (`crypto`, `flutter_secure_storage`, `image_picker`, `geolocator`).

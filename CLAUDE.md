@@ -52,5 +52,13 @@ Clean Architecture in three layers under `lib/`, with `main.dart` as entry point
 ### Institutional catalog (`lib/data/institutional/`, `assets/institutional/`)
 Offline, read from `manifest.json` + per-resource JSON under `academic/` and `services/`. `InstitutionalMapActionValidator` checks whether a resource's map link points to a real place id (constructed with the loaded `MapRepository`) so the UI can show "map" vs "external instance".
 
+### Auth, session, notifications & sensors (added for DAMN-20271)
+- **Local offline auth** (`lib/domain/auth/`, `lib/data/auth/`): users are stored in a private JSON file (`escom_users.json` via `path_provider`), **not in Drift** — this deliberately avoids `build_runner` codegen. Passwords and security answers are SHA-256 + per-field salt (`PasswordHasher`); the session token lives in `flutter_secure_storage` (`SecureSessionStore`). Swap implementations in tests via `ProviderScope` overrides (`userLocalDataSourceProvider` accepts a `UserFileProvider`; `sessionStoreProvider` is an interface).
+- **Session gate**: `AuthController` (Riverpod `Notifier<AuthState>`, `lib/ui/auth/auth_controller.dart`) drives a `go_router` `redirect` via `appRouterProvider` (`lib/navigation/router_provider.dart`). Unknown → `/cargando` splash; unauthenticated → `/login`; authenticated users are kept out of the auth routes. `main.dart` builds the app from `appRouterProvider` (no injected `router` param anymore — tests override `appRouterProvider`).
+- **Notifications** (`lib/data/notifications/notification_service.dart`): `notificationSyncProvider` reschedules class reminders whenever the active schedule or settings change; default timezone `America/Mexico_City`. Settings fields already existed in `LocalSettings`.
+- **Sensors** (`lib/data/device/`): `AvatarImageService` (camera/gallery) and `LocationService` (GPS). Platform permissions added to `AndroidManifest.xml` and iOS `Info.plist`.
+- **Global error handling**: `main.dart` wraps `runApp` in `runZonedGuarded` + `FlutterError.onError` + a friendly `ErrorWidget.builder`.
+- New deps (run `flutter pub get`): `crypto`, `flutter_secure_storage`, `image_picker`, `geolocator`. Compliance notes live in [CAMBIOS_DAMN.md](CAMBIOS_DAMN.md); UML in [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+
 ## Testing notes
 Tests mirror the layer structure (`test/domain/`, `test/data/`, `test/widget_test.dart`). Domain and data tests run without a device by injecting the fake loader / in-memory database described above. The algorithm tests (A*, route service, conflict detector) are the regression safety net for the port — keep them green when touching routing or schedule logic.
