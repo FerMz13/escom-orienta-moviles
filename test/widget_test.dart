@@ -4,13 +4,46 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:escom_orienta_moviles/data/database/app_database.dart';
 import 'package:escom_orienta_moviles/data/map/map_repository.dart';
+import 'package:escom_orienta_moviles/data/notifications/notification_service.dart';
+import 'package:escom_orienta_moviles/domain/auth/auth_models.dart';
 import 'package:escom_orienta_moviles/domain/schedule/schedule_models.dart';
 import 'package:escom_orienta_moviles/main.dart';
 import 'package:escom_orienta_moviles/navigation/app_router.dart';
 import 'package:escom_orienta_moviles/navigation/app_routes.dart';
+import 'package:escom_orienta_moviles/navigation/router_provider.dart';
+import 'package:escom_orienta_moviles/ui/auth/auth_controller.dart';
 import 'package:escom_orienta_moviles/ui/providers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+final _fakeUser = UserAccount(
+  id: 't',
+  email: 'test@ipn.mx',
+  fullName: 'Alumno Prueba',
+  securityQuestion: 'q',
+  createdAt: DateTime(2026),
+);
+
+/// Sesión ya autenticada para no pasar por el login en las pruebas de UI.
+class _AuthedController extends AuthController {
+  @override
+  AuthState build() => AuthState.authenticated(_fakeUser);
+}
+
+/// Notificaciones no-op: evita llamadas a canales de plataforma en pruebas.
+class _NoopNotifications extends NotificationService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> syncClassReminders(ProcessedSchedule? schedule, LocalSettings settings) async {}
+  @override
+  Future<void> requestPermissions() async {}
+  @override
+  Future<void> showTest() async {}
+  @override
+  Future<void> cancelAll() async {}
+}
 
 /// App con base de datos en memoria y datos de mapa leídos del disco.
 Future<ProviderContainer> pumpApp(WidgetTester tester, {String initial = AppRoutes.home}) async {
@@ -23,8 +56,21 @@ Future<ProviderContainer> pumpApp(WidgetTester tester, {String initial = AppRout
   final container = ProviderContainer(overrides: [
     appDatabaseProvider.overrideWithValue(db),
     mapRepositoryProvider.overrideWithValue(map),
+    notificationServiceProvider.overrideWithValue(_NoopNotifications()),
+    authControllerProvider.overrideWith(_AuthedController.new),
     // Sin reloj periódico en pruebas.
     clockProvider.overrideWith((ref) => Stream.value(DateTime(2026, 11, 23, 9, 45))),
+    // Enrutador con la ubicación inicial deseada y sesión ya autenticada.
+    appRouterProvider.overrideWith((ref) {
+      final refresh = ValueNotifier<int>(0);
+      ref.onDispose(refresh.dispose);
+      ref.listen(authControllerProvider, (_, __) => refresh.value++);
+      return createAppRouter(
+        refreshListenable: refresh,
+        readAuthState: () => ref.read(authControllerProvider),
+        initialLocation: initial,
+      );
+    }),
   ]);
   addTearDown(() async {
     container.dispose();
@@ -32,7 +78,7 @@ Future<ProviderContainer> pumpApp(WidgetTester tester, {String initial = AppRout
   });
   await tester.pumpWidget(UncontrolledProviderScope(
     container: container,
-    child: EscomOrientaApp(router: createAppRouter(initialLocation: initial)),
+    child: const EscomOrientaApp(),
   ));
   await tester.pumpAndSettle();
   return container;
