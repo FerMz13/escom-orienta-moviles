@@ -159,7 +159,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         prefixIcon: Icon(Icons.vpn_key_outlined),
                         border: OutlineInputBorder(),
                       ),
-                      validator: (v) => AuthValidators.required(v, field: 'La respuesta'),
+                      validator: (v) => AuthValidators.notEmpty(v, field: 'La respuesta'),
                     ),
                     const SizedBox(height: 24),
                     FilledButton(

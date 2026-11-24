@@ -141,7 +141,7 @@ class _RecoverPasswordScreenState extends ConsumerState<RecoverPasswordScreen> {
                 prefixIcon: Icon(Icons.vpn_key_outlined),
                 border: OutlineInputBorder(),
               ),
-              validator: (v) => AuthValidators.required(v, field: 'La respuesta'),
+              validator: (v) => AuthValidators.notEmpty(v, field: 'La respuesta'),
             ),
             const SizedBox(height: 16),
             TextFormField(

@@ -23,7 +23,7 @@ abstract final class AuthValidators {
     return null;
   }
 
-  static String? required(String? value, {String field = 'Este campo'}) {
+  static String? notEmpty(String? value, {String field = 'Este campo'}) {
     if ((value ?? '').trim().isEmpty) return '$field es obligatorio.';
     return null;
   }
