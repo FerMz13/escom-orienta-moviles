@@ -50,6 +50,14 @@ dependencies:
   share_plus: ^13.3.1
   intl: ^0.20.3
 
+  # --- Usuarios y seguridad (RF1 / RNF2) ---
+  crypto: ^3.0.6                 # Hash SHA-256 de contraseñas y respuestas de seguridad.
+  flutter_secure_storage: ^9.2.2 # Token de sesión en Keystore/Keychain del sistema.
+
+  # --- Integración con hardware / sensores (RF3) ---
+  image_picker: ^1.1.2          # Avatar: captura con cámara o selección de galería.
+  geolocator: ^13.0.1           # Ubicación GPS opcional del dispositivo.
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
