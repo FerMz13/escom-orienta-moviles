@@ -2,8 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../domain/schedule/schedule_models.dart';
 import '../../navigation/app_routes.dart';
+import '../auth/auth_controller.dart';
 import '../common/common_widgets.dart';
 import '../providers.dart';
 
@@ -13,7 +13,10 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final alias = ref.watch(localSettingsProvider).value?.userAlias ?? LocalSettings.defaultUserAlias;
+    final user = ref.watch(authControllerProvider).user;
+    final greetingName = user == null
+        ? 'Alumno'
+        : user.fullName.trim().split(RegExp(r'\s+')).first;
 
     return Scaffold(
       body: SafeArea(
@@ -29,11 +32,16 @@ class HomeScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('ESCOM Orienta', style: theme.textTheme.titleLarge),
-                      Text('¡Bienvenido, $alias!',
+                      Text('¡Bienvenido, $greetingName!',
                           style: theme.textTheme.bodyMedium
                               ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Mi perfil',
+                  icon: const Icon(Icons.account_circle_outlined),
+                  onPressed: () => context.push(AppRoutes.profile),
                 ),
               ],
             ),

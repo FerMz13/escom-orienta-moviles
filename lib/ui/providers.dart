@@ -8,13 +8,19 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/auth/local_auth_repository.dart';
+import '../data/auth/user_local_data_source.dart';
 import '../data/database/app_database.dart';
+import '../data/device/avatar_image_service.dart';
+import '../data/device/location_service.dart';
 import '../data/institutional/institutional_local_data_source.dart';
 import '../data/institutional/local_institutional_repository.dart';
 import '../data/map/default_route_calculation_service.dart';
 import '../data/map/map_repository.dart';
+import '../data/notifications/notification_service.dart';
 import '../data/schedule/pdf/pdf_schedule_processor.dart';
 import '../data/schedule/schedule_repository.dart';
+import '../domain/auth/auth_repository.dart';
 import '../domain/institutional/institutional_map_action_validator.dart';
 import '../domain/institutional/institutional_models.dart';
 import '../domain/institutional/institutional_repository.dart';
@@ -99,4 +105,44 @@ final institutionalResourcesProvider = FutureProvider<List<InstitutionalResource
 final mapActionValidatorProvider = FutureProvider<InstitutionalMapActionValidator>((ref) async {
   final map = await ref.watch(loadedMapProvider.future);
   return InstitutionalMapActionValidator((id) => map.placeById(id) != null);
+});
+
+// --- Autenticación (RF1) ---
+
+final userLocalDataSourceProvider =
+    Provider<UserLocalDataSource>((ref) => UserLocalDataSource());
+
+final sessionStoreProvider = Provider<SessionStore>((ref) => SecureSessionStore());
+
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => LocalAuthRepository(
+    ref.watch(userLocalDataSourceProvider),
+    ref.watch(sessionStoreProvider),
+  ),
+);
+
+// --- Sensores / hardware (RF3) ---
+
+final avatarImageServiceProvider = Provider<AvatarImageService>((ref) => AvatarImageService());
+
+final locationServiceProvider = Provider<LocationService>((ref) => const LocationService());
+
+// --- Notificaciones locales (RF3) ---
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  final service = NotificationService();
+  // Inicialización perezosa; la programación real ocurre en notificationSyncProvider.
+  service.init();
+  return service;
+});
+
+/// Efecto que reprograma los recordatorios cada vez que cambia el horario
+/// activo o las preferencias. Se mantiene vivo observándolo desde la raíz.
+final notificationSyncProvider = Provider<void>((ref) {
+  final service = ref.watch(notificationServiceProvider);
+  final schedule = ref.watch(activeScheduleProvider).value;
+  final settings = ref.watch(localSettingsProvider).value;
+  if (settings != null) {
+    service.syncClassReminders(schedule, settings);
+  }
 });
