@@ -116,6 +116,22 @@ void main() {
       expect(settings.classNotificationMinutes, 25);
     });
 
+    test('RF-22/RF-41: los ajustes de recordatorios y apariencia persisten', () async {
+      await repository.transformLocalSettings((s) => s.copyWith(
+            remindersEnabled: false,
+            reminderCount: 3,
+            classNotificationMinutes: 15,
+            enableStartClassNotification: false,
+            schedulePaletteMode: SchedulePaletteMode.accessible,
+          ));
+      final settings = await repository.getOrCreateLocalSettings();
+      expect(settings.remindersEnabled, isFalse);
+      expect(settings.reminderCount, 3);
+      expect(settings.classNotificationMinutes, 15);
+      expect(settings.enableStartClassNotification, isFalse);
+      expect(settings.schedulePaletteMode, SchedulePaletteMode.accessible);
+    });
+
     test('clearLocalData restablece todo', () async {
       await repository.saveManualClassSessions([draft('A', 1, '07:00', '08:30')]);
       await repository.updateLocalSettings(const LocalSettings(userAlias: 'Fer', themeMode: AppThemeMode.dark));

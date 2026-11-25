@@ -216,11 +216,17 @@ class LocalSettings {
   static const defaultUserAlias = 'Alumno';
   static const maxUserAliasLength = 20;
 
+  /// Valores admitidos para la configuración de recordatorios (RF-20).
+  static const allowedReminderCounts = [1, 2, 3];
+  static const allowedReminderIntervals = [5, 10, 15, 20, 30];
+
   const LocalSettings({
     this.userAlias = defaultUserAlias,
     this.themeMode = AppThemeMode.system,
     this.schedulePaletteMode = SchedulePaletteMode.institutional,
     this.customScheduleColors = '',
+    this.remindersEnabled = true,
+    this.reminderCount = 1,
     this.classNotificationMinutes = 10,
     this.enableStartClassNotification = true,
     this.notificationScope = NotificationScope.allSubjects,
@@ -232,6 +238,15 @@ class LocalSettings {
   final AppThemeMode themeMode;
   final SchedulePaletteMode schedulePaletteMode;
   final String customScheduleColors;
+
+  /// Interruptor general: si es `false` no se programa ningún aviso (RF-18).
+  final bool remindersEnabled;
+
+  /// Cuántos avisos previos se envían por clase (RF-20).
+  final int reminderCount;
+
+  /// Intervalo en minutos entre avisos previos; el más cercano sale
+  /// [classNotificationMinutes] antes del inicio (RF-19, RF-20).
   final int classNotificationMinutes;
   final bool enableStartClassNotification;
   final NotificationScope notificationScope;
@@ -247,11 +262,31 @@ class LocalSettings {
     return alias.length > maxUserAliasLength ? alias.substring(0, maxUserAliasLength) : alias;
   }
 
+  /// [reminderCount] acotado a los valores admitidos.
+  int get sanitizedReminderCount => reminderCount.clamp(
+      allowedReminderCounts.first, allowedReminderCounts.last);
+
+  /// [classNotificationMinutes] acotado a los valores admitidos (0 = sin aviso previo).
+  int get sanitizedReminderInterval => classNotificationMinutes <= 0
+      ? 0
+      : classNotificationMinutes.clamp(
+          allowedReminderIntervals.first, allowedReminderIntervals.last);
+
+  /// Minutos antes del inicio en que sale cada aviso previo, del más lejano
+  /// al más cercano. Ej.: 2 avisos cada 10 min → `[20, 10]`.
+  List<int> get reminderOffsetsMinutes {
+    final interval = sanitizedReminderInterval;
+    if (interval == 0) return const [];
+    return [for (var i = sanitizedReminderCount; i >= 1; i--) i * interval];
+  }
+
   LocalSettings copyWith({
     String? userAlias,
     AppThemeMode? themeMode,
     SchedulePaletteMode? schedulePaletteMode,
     String? customScheduleColors,
+    bool? remindersEnabled,
+    int? reminderCount,
     int? classNotificationMinutes,
     bool? enableStartClassNotification,
     NotificationScope? notificationScope,
@@ -263,6 +298,8 @@ class LocalSettings {
         themeMode: themeMode ?? this.themeMode,
         schedulePaletteMode: schedulePaletteMode ?? this.schedulePaletteMode,
         customScheduleColors: customScheduleColors ?? this.customScheduleColors,
+        remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+        reminderCount: reminderCount ?? this.reminderCount,
         classNotificationMinutes: classNotificationMinutes ?? this.classNotificationMinutes,
         enableStartClassNotification:
             enableStartClassNotification ?? this.enableStartClassNotification,

@@ -18,9 +18,13 @@ class AuthController extends Notifier<AuthState> {
   Future<void> _restore() async {
     try {
       final user = await _repo.currentUser();
-      state = user == null
-          ? const AuthState.unauthenticated()
-          : AuthState.authenticated(user);
+      if (user != null) {
+        state = AuthState.authenticated(user);
+      } else if (await _repo.isGuestSession()) {
+        state = const AuthState.guest();
+      } else {
+        state = const AuthState.unauthenticated();
+      }
     } catch (_) {
       state = const AuthState.unauthenticated();
     }
@@ -69,6 +73,12 @@ class AuthController extends Notifier<AuthState> {
     required String newPassword,
   }) =>
       _repo.changePassword(currentPassword: currentPassword, newPassword: newPassword);
+
+  /// Usar la app sin registrarse (RF-34). La elección se recuerda.
+  Future<void> continueAsGuest() async {
+    await _repo.continueAsGuest();
+    state = const AuthState.guest();
+  }
 
   Future<void> logout() async {
     await _repo.logout();

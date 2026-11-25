@@ -69,14 +69,19 @@ class _ClassFormState extends State<_ClassForm> {
       } else {
         _end = picked;
       }
-      _timeError = null;
+      _timeError = _validateTimes();
     });
   }
 
-  void _submit() {
+  /// Validación inmediata del rango horario (se ejecuta en cada cambio).
+  String? _validateTimes() {
     final startMinutes = _start.hour * 60 + _start.minute;
     final endMinutes = _end.hour * 60 + _end.minute;
-    setState(() => _timeError = endMinutes <= startMinutes ? 'La hora de fin debe ser posterior al inicio.' : null);
+    return endMinutes <= startMinutes ? 'La hora de fin debe ser posterior al inicio.' : null;
+  }
+
+  void _submit() {
+    setState(() => _timeError = _validateTimes());
     if (!_formKey.currentState!.validate() || _timeError != null) return;
 
     String? optional(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
@@ -105,6 +110,7 @@ class _ClassFormState extends State<_ClassForm> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -195,7 +201,7 @@ class _ClassFormState extends State<_ClassForm> {
                         _start = TimeOfDay(hour: h, minute: m);
                         final end = h * 60 + m + 90;
                         _end = TimeOfDay(hour: end ~/ 60, minute: end % 60);
-                        _timeError = null;
+                        _timeError = _validateTimes();
                       }),
                     ),
                 ],

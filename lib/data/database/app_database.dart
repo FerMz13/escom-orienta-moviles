@@ -22,11 +22,18 @@ class AppDatabase extends _$AppDatabase {
   static const databaseName = 'escom_orienta';
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // v2: interruptor general y cantidad de avisos previos (RF-18, RF-20).
+          if (from < 2) {
+            await m.addColumn(localSettingsTable, localSettingsTable.remindersEnabled);
+            await m.addColumn(localSettingsTable, localSettingsTable.reminderCount);
+          }
+        },
         beforeOpen: (details) async {
           // SQLite trae las llaves foráneas desactivadas; sin esto no hay
           // borrado en cascada de clases al borrar un horario.

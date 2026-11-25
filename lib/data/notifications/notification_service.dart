@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../domain/schedule/reminder_planner.dart';
 import '../../domain/schedule/schedule_models.dart';
 
 /// Notificaciones locales (RF3). Programa recordatorios de clase a partir del
@@ -40,7 +41,7 @@ class NotificationService {
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(),
     );
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
     _ready = true;
   }
 
@@ -76,58 +77,61 @@ class NotificationService {
     await ios?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
-  /// Reprograma todos los recordatorios según el horario y las preferencias.
+  bool _askedPermission = false;
+
+  /// Reprograma todos los recordatorios según el horario y las preferencias
+  /// (RF-17, RF-23). Se llama cada vez que cambia el horario o la configuración
+  /// y al abrir la app; tras reiniciar el teléfono, el `ScheduledNotificationBootReceiver`
+  /// del AndroidManifest restaura las alarmas guardadas por el plugin.
   Future<void> syncClassReminders(ProcessedSchedule? schedule, LocalSettings settings) async {
     await init();
     await _plugin.cancelAll();
-    if (schedule == null || schedule.classes.isEmpty) return;
+    final reminders = ReminderPlanner.plan(schedule, settings);
+    if (reminders.isEmpty) return;
 
-    final selected = settings.notificationScope == NotificationScope.selectedSubjects
-        ? settings.notificationSubjects
-            .split(';')
-            .map((s) => s.trim().toLowerCase())
-            .where((s) => s.isNotEmpty)
-            .toSet()
-        : null;
+    // Android 13+: sin este permiso los avisos no se muestran. Se pide una sola
+    // vez por ejecución y solo si de verdad hay recordatorios que programar.
+    if (!_askedPermission) {
+      _askedPermission = true;
+      await _android?.requestNotificationsPermission();
+    }
+    final mode = await _scheduleMode();
 
     var id = 1;
-    for (final session in schedule.classes) {
-      if (selected != null && !selected.contains(session.subjectName.trim().toLowerCase())) {
-        continue;
-      }
-
-      final start = _nextInstance(session.dayOfWeek, session.startMinutes);
-      final room = session.classroomName == null ? '' : ' · Salón ${session.classroomName}';
-
-      final minutesBefore = settings.classNotificationMinutes;
-      if (minutesBefore > 0) {
-        await _schedule(
-          id++,
-          'Tu clase empieza pronto',
-          '${session.subjectName} en $minutesBefore min (${session.startTime})$room',
-          start.subtract(Duration(minutes: minutesBefore)),
-        );
-      }
-      if (settings.enableStartClassNotification) {
-        await _schedule(
-          id++,
-          'Clase en curso',
-          '${session.subjectName} (${session.startTime})$room',
-          start,
-        );
-      }
+    for (final r in reminders) {
+      await _schedule(id++, r.title, r.body, _nextInstance(r.dayOfWeek, r.minutesOfDay), mode);
     }
   }
 
-  Future<void> _schedule(int id, String title, String body, tz.TZDateTime when) async {
+  AndroidFlutterLocalNotificationsPlugin? get _android =>
+      _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  /// Alarmas exactas si el usuario las concedió; si no, inexactas (pueden
+  /// retrasarse unos minutos, pero se entregan).
+  Future<AndroidScheduleMode> _scheduleMode() async {
+    try {
+      final exact = await _android?.canScheduleExactNotifications() ?? true;
+      return exact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle;
+    } catch (_) {
+      return AndroidScheduleMode.inexactAllowWhileIdle;
+    }
+  }
+
+  Future<void> _schedule(
+    int id,
+    String title,
+    String body,
+    tz.TZDateTime when,
+    AndroidScheduleMode mode,
+  ) async {
     try {
       await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        when,
-        _details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: when,
+        notificationDetails: _details,
+        androidScheduleMode: mode,
         matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       );
     } catch (e) {
@@ -136,7 +140,7 @@ class NotificationService {
     }
   }
 
-  /// Próxima ocurrencia semanal de un día (1=lunes..6=sábado) y minuto del día.
+  /// Próxima ocurrencia semanal de un día (1=lunes..7=domingo) y minuto del día.
   tz.TZDateTime _nextInstance(int dayOfWeek, int minutesOfDay) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(
@@ -158,10 +162,10 @@ class NotificationService {
   Future<void> showTest() async {
     await init();
     await _plugin.show(
-      9999,
-      'Notificaciones activas',
-      'Así se verán los recordatorios de tus clases.',
-      _details,
+      id: 9999,
+      title: 'Notificaciones activas',
+      body: 'Así se verán los recordatorios de tus clases.',
+      notificationDetails: _details,
     );
   }
 

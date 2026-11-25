@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const register = '/registro';
   static const recover = '/recuperar';
   static const profile = '/perfil';
+  static const settings = '/ajustes';
 
   static const home = '/inicio';
   static const map = '/mapa';

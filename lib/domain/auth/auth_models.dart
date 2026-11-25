@@ -96,13 +96,17 @@ class AuthFailure extends AuthResult {
 }
 
 /// Estado de sesión observado por la UI y el enrutador.
-enum AuthStatus { unknown, authenticated, unauthenticated }
+///
+/// [AuthStatus.guest]: el usuario entró sin cuenta (RF-34). Puede usar todas
+/// las funciones de la app; solo el perfil con avatar requiere cuenta.
+enum AuthStatus { unknown, authenticated, guest, unauthenticated }
 
 class AuthState {
   const AuthState({required this.status, this.user});
 
   const AuthState.unknown() : this(status: AuthStatus.unknown);
   const AuthState.unauthenticated() : this(status: AuthStatus.unauthenticated);
+  const AuthState.guest() : this(status: AuthStatus.guest);
   const AuthState.authenticated(UserAccount user)
       : this(status: AuthStatus.authenticated, user: user);
 
@@ -110,5 +114,9 @@ class AuthState {
   final UserAccount? user;
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isGuest => status == AuthStatus.guest;
   bool get isUnknown => status == AuthStatus.unknown;
+
+  /// Puede entrar a las pantallas principales (con cuenta o como invitado).
+  bool get canUseApp => isAuthenticated || isGuest;
 }

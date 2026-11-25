@@ -85,6 +85,7 @@ class LocalAuthRepository implements AuthRepository {
     );
     await _users.upsert(user);
     await _session.writeUserId(user.id);
+    await _session.writeGuest(false);
     return AuthResult.success(_toAccount(user));
   }
 
@@ -96,11 +97,18 @@ class LocalAuthRepository implements AuthRepository {
     if (user == null) return invalid;
     if (!PasswordHasher.verify(password, user.salt, user.passwordHash)) return invalid;
     await _session.writeUserId(user.id);
+    await _session.writeGuest(false);
     return AuthResult.success(_toAccount(user));
   }
 
   @override
   Future<void> logout() => _session.clear();
+
+  @override
+  Future<bool> isGuestSession() => _session.readGuest();
+
+  @override
+  Future<void> continueAsGuest() => _session.writeGuest(true);
 
   @override
   Future<AuthResult> updateProfile({

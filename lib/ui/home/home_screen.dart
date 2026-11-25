@@ -14,9 +14,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final user = ref.watch(authControllerProvider).user;
-    final greetingName = user == null
-        ? 'Alumno'
-        : user.fullName.trim().split(RegExp(r'\s+')).first;
+    final alias = ref.watch(localSettingsProvider).value?.sanitizedUserAlias ?? 'Alumno';
+    final greetingName = user == null ? alias : user.fullName.trim().split(RegExp(r'\s+')).first;
 
     return Scaffold(
       body: SafeArea(
@@ -37,6 +36,11 @@ class HomeScreen extends ConsumerWidget {
                               ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Ajustes',
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push(AppRoutes.settings),
                 ),
                 IconButton(
                   tooltip: 'Mi perfil',

@@ -71,18 +71,24 @@ class StoredUser {
 abstract interface class SessionStore {
   Future<String?> readUserId();
   Future<void> writeUserId(String userId);
+
+  /// Si el usuario eligió usar la app sin cuenta (RF-34).
+  Future<bool> readGuest();
+  Future<void> writeGuest(bool guest);
+
+  /// Borra la sesión y la marca de invitado.
   Future<void> clear();
 }
 
 class SecureSessionStore implements SessionStore {
   SecureSessionStore([FlutterSecureStorage? storage])
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+      // Desde flutter_secure_storage 10 el cifrado (AES-GCM + Keystore) es el
+      // predeterminado en Android; `encryptedSharedPreferences` ya no existe.
+      : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
   static const _key = 'escom_session_user_id';
+  static const _guestKey = 'escom_session_guest';
 
   @override
   Future<String?> readUserId() => _storage.read(key: _key);
@@ -91,7 +97,17 @@ class SecureSessionStore implements SessionStore {
   Future<void> writeUserId(String userId) => _storage.write(key: _key, value: userId);
 
   @override
-  Future<void> clear() => _storage.delete(key: _key);
+  Future<bool> readGuest() async => await _storage.read(key: _guestKey) == '1';
+
+  @override
+  Future<void> writeGuest(bool guest) =>
+      guest ? _storage.write(key: _guestKey, value: '1') : _storage.delete(key: _guestKey);
+
+  @override
+  Future<void> clear() async {
+    await _storage.delete(key: _key);
+    await _storage.delete(key: _guestKey);
+  }
 }
 
 /// Carga y guarda usuarios en un archivo JSON dentro del almacenamiento privado

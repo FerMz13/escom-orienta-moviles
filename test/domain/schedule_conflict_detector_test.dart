@@ -46,6 +46,35 @@ void main() {
       expect(ScheduleConflictDetector.conflictsWithExisting(existing, [boundary]), isFalse);
     });
 
+    group('conflictsFor (RF-39)', () {
+      final draft = ClassSessionDraft(
+          subjectName: 'Nueva', dayOfWeek: 1, startTime: '10:30', endTime: '12:00');
+
+      test('devuelve solo las clases del mismo día que se traslapan', () {
+        final clash = session(1, '10:00', '11:30');
+        final otherDay = session(2, '10:00', '11:30', day: 2);
+        final touching = session(3, '12:00', '13:30');
+        expect(
+          ScheduleConflictDetector.conflictsFor([clash, otherDay, touching], draft),
+          [clash],
+        );
+      });
+
+      test('al editar, la propia sesión no cuenta como traslape', () {
+        final self = session(1, '10:30', '12:00');
+        final other = session(2, '11:00', '12:30');
+        expect(
+          ScheduleConflictDetector.conflictsFor([self, other], draft, excludeId: 1),
+          [other],
+        );
+        expect(ScheduleConflictDetector.conflictsFor([self], draft, excludeId: 1), isEmpty);
+      });
+
+      test('sin clases existentes no hay conflictos', () {
+        expect(ScheduleConflictDetector.conflictsFor(<ClassSession>[], draft), isEmpty);
+      });
+    });
+
     test('horas inválidas nunca generan conflicto', () {
       expect(ScheduleConflictDetector.overlapTimes('7:00', '09:00', '08:00', '10:00'), isFalse);
       expect(ScheduleConflictDetector.overlapTimes('25:00', '26:00', '08:00', '10:00'), isFalse);

@@ -19,8 +19,14 @@ abstract interface class AuthRepository {
   /// Autenticación con credenciales locales.
   Future<AuthResult> login({required String email, required String password});
 
-  /// Cierra la sesión activa (borra el token seguro).
+  /// Cierra la sesión activa (borra el token seguro y el modo invitado).
   Future<void> logout();
+
+  /// `true` si el usuario eligió usar la app sin cuenta (RF-34).
+  Future<bool> isGuestSession();
+
+  /// Entra a la app sin registrarse; la elección se recuerda (RF-34).
+  Future<void> continueAsGuest();
 
   /// Actualiza nombre y/o avatar del usuario de la sesión.
   Future<AuthResult> updateProfile({String? fullName, String? avatarPath, bool clearAvatar = false});

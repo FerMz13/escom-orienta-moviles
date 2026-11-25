@@ -12,6 +12,7 @@ import '../ui/procedures/procedure_detail_screen.dart';
 import '../ui/procedures/procedures_screen.dart';
 import '../ui/profile/profile_screen.dart';
 import '../ui/schedule/schedule_screen.dart';
+import '../ui/settings/settings_screen.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
 
@@ -37,20 +38,26 @@ GoRouter createAppRouter({
         if (auth.isUnknown) {
           return location == AppRoutes.splash ? null : AppRoutes.splash;
         }
-        // Sin sesión: solo se permiten las rutas públicas de autenticación.
-        if (!auth.isAuthenticated) {
+        // Sin sesión ni modo invitado: solo las rutas públicas de autenticación.
+        if (!auth.canUseApp) {
           return onAuthRoute && location != AppRoutes.splash ? null : AppRoutes.login;
+        }
+        // Invitado (RF-34): usa toda la app y puede ir a login/registro para
+        // crear una cuenta cuando quiera.
+        if (auth.isGuest) {
+          return location == AppRoutes.splash ? AppRoutes.home : null;
         }
         // Con sesión: fuera del splash y de las pantallas de autenticación.
         if (onAuthRoute) return AppRoutes.home;
         return null;
       },
       routes: [
-        GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashScreen()),
-        GoRoute(path: AppRoutes.login, builder: (_, __) => const LoginScreen()),
-        GoRoute(path: AppRoutes.register, builder: (_, __) => const RegisterScreen()),
-        GoRoute(path: AppRoutes.recover, builder: (_, __) => const RecoverPasswordScreen()),
-        GoRoute(path: AppRoutes.profile, builder: (_, __) => const ProfileScreen()),
+        GoRoute(path: AppRoutes.splash, builder: (_, _) => const SplashScreen()),
+        GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginScreen()),
+        GoRoute(path: AppRoutes.register, builder: (_, _) => const RegisterScreen()),
+        GoRoute(path: AppRoutes.recover, builder: (_, _) => const RecoverPasswordScreen()),
+        GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfileScreen()),
+        GoRoute(path: AppRoutes.settings, builder: (_, _) => const SettingsScreen()),
         StatefulShellRoute.indexedStack(
           builder: (context, state, shell) => AppShell(navigationShell: shell),
           branches: [

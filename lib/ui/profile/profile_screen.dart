@@ -25,9 +25,39 @@ class ProfileScreen extends ConsumerWidget {
     final user = auth.user;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil')),
+      appBar: AppBar(
+        title: const Text('Mi perfil'),
+        actions: [
+          IconButton(
+            tooltip: 'Ajustes',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(AppRoutes.settings),
+          ),
+        ],
+      ),
       body: user == null
-          ? const EmptyState(icon: Icons.person_off, title: 'Sin sesión activa')
+          // Invitado (RF-34): todo funciona sin cuenta; aquí se ofrece crearla.
+          ? EmptyState(
+              icon: Icons.person_outline,
+              title: 'Estás usando la app sin cuenta',
+              message: 'Tu horario y ajustes se guardan en este dispositivo. '
+                  'Crea una cuenta para tener perfil con foto.',
+              action: Column(
+                children: [
+                  FilledButton.icon(
+                    onPressed: () => context.push(AppRoutes.register),
+                    icon: const Icon(Icons.person_add_alt),
+                    label: const Text('Crear cuenta'),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.login),
+                    icon: const Icon(Icons.login),
+                    label: const Text('Iniciar sesión'),
+                  ),
+                ],
+              ),
+            )
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -176,6 +206,7 @@ class ProfileScreen extends ConsumerWidget {
         title: const Text('Cambiar contraseña'),
         content: Form(
           key: formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

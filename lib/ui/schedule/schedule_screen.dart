@@ -32,7 +32,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   Future<void> _editClass(ClassSession session, List<ClassSession> existing) async {
     final draft = await showClassForm(context, initial: session);
     if (draft == null || !mounted) return;
-    if (!await _confirmIfConflicts(existing.where((c) => c.id != session.id).toList(), draft)) return;
+    if (!await _confirmIfConflicts(existing, draft, excludeId: session.id)) return;
     await ref.read(scheduleRepositoryProvider).updateClassSession(ClassSession(
           id: session.id,
           scheduleId: session.scheduleId,
@@ -49,10 +49,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   /// Los traslapes se permiten (el SAES a veces los tiene), pero se avisan.
-  Future<bool> _confirmIfConflicts(List<ClassSession> existing, ClassSessionDraft draft) async {
-    final clashes = existing
-        .where((c) => c.dayOfWeek == draft.dayOfWeek && ScheduleConflictDetector.overlap(c, draft))
-        .toList();
+  Future<bool> _confirmIfConflicts(
+    List<ClassSession> existing,
+    ClassSessionDraft draft, {
+    int? excludeId,
+  }) async {
+    final clashes = ScheduleConflictDetector.conflictsFor(existing, draft, excludeId: excludeId);
     if (clashes.isEmpty) return true;
     final accepted = await showDialog<bool>(
       context: context,
@@ -72,18 +74,12 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   Future<void> _deleteSchedule() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar horario?'),
-        content: const Text('Se borrarán todas tus clases guardadas en este dispositivo.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-        ],
-      ),
+    final confirmed = await confirmDeletion(
+      context,
+      title: '¿Eliminar horario?',
+      message: 'Se borrarán todas tus clases guardadas en este dispositivo.',
     );
-    if (confirmed ?? false) await ref.read(scheduleRepositoryProvider).deleteCurrentSchedule();
+    if (confirmed) await ref.read(scheduleRepositoryProvider).deleteCurrentSchedule();
   }
 
   @override
@@ -105,9 +101,11 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             PopupMenuButton<String>(
               onSelected: (value) => switch (value) {
                 'delete' => _deleteSchedule(),
+                'reminders' => context.push(AppRoutes.settings),
                 _ => null,
               },
               itemBuilder: (context) => const [
+                PopupMenuItem(value: 'reminders', child: Text('Recordatorios y colores')),
                 PopupMenuItem(value: 'delete', child: Text('Eliminar horario')),
               ],
             ),
@@ -181,6 +179,8 @@ class _ScheduleBody extends ConsumerWidget {
     final dayClasses = schedule.classes.where((c) => c.dayOfWeek == day).toList()
       ..sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
     final pendingRooms = schedule.classes.where((c) => c.classroomName == null).length;
+    final palette = ref.watch(localSettingsProvider).value?.schedulePaletteMode ??
+        SchedulePaletteMode.institutional;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
@@ -247,6 +247,7 @@ class _ScheduleBody extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: _ClassCard(
                 session: session,
+                color: SchedulePalettes.colorFor(session.subjectName, palette),
                 hasConflict: conflicting.contains(session),
                 onTap: () => _showActions(context, ref, session),
               ),
@@ -300,18 +301,30 @@ class _ScheduleBody extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.delete_outline),
               title: const Text('Eliminar esta sesión'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(sheetContext);
-                repository.deleteClassSession(session.id);
+                final ok = await confirmDeletion(
+                  context,
+                  title: '¿Eliminar esta sesión?',
+                  message: 'Se eliminará ${session.subjectName} del '
+                      '${dayName(session.dayOfWeek)} (${session.startTime} - ${session.endTime}).',
+                );
+                if (ok) await repository.deleteClassSession(session.id);
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep_outlined),
               title: const Text('Eliminar materia'),
               subtitle: Text('Se eliminarán todas las sesiones de ${session.subjectName}.'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(sheetContext);
-                repository.deleteSubjectSessions(session);
+                final ok = await confirmDeletion(
+                  context,
+                  title: '¿Eliminar materia?',
+                  message: 'Se eliminarán todas las sesiones de ${session.subjectName}. '
+                      'Esta acción no se puede deshacer.',
+                );
+                if (ok) await repository.deleteSubjectSessions(session);
               },
             ),
           ],
@@ -322,9 +335,15 @@ class _ScheduleBody extends ConsumerWidget {
 }
 
 class _ClassCard extends StatelessWidget {
-  const _ClassCard({required this.session, required this.hasConflict, required this.onTap});
+  const _ClassCard({
+    required this.session,
+    required this.color,
+    required this.hasConflict,
+    required this.onTap,
+  });
 
   final ClassSession session;
+  final Color color;
   final bool hasConflict;
   final VoidCallback onTap;
 
@@ -340,7 +359,7 @@ class _ClassCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(width: 6, color: hasConflict ? theme.colorScheme.error : EscomColors.blue),
+              Container(width: 6, color: hasConflict ? theme.colorScheme.error : color),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(14),

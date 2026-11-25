@@ -64,7 +64,7 @@ Future<ProviderContainer> pumpApp(WidgetTester tester, {String initial = AppRout
     appRouterProvider.overrideWith((ref) {
       final refresh = ValueNotifier<int>(0);
       ref.onDispose(refresh.dispose);
-      ref.listen(authControllerProvider, (_, __) => refresh.value++);
+      ref.listen(authControllerProvider, (_, _) => refresh.value++);
       return createAppRouter(
         refreshListenable: refresh,
         readAuthState: () => ref.read(authControllerProvider),

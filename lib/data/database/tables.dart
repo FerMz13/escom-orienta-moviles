@@ -48,6 +48,13 @@ class LocalSettingsTable extends Table {
   TextColumn get schedulePaletteMode =>
       text().withDefault(const Constant('INSTITUTIONAL'))();
   TextColumn get customScheduleColors => text().withDefault(const Constant(''))();
+  /// Interruptor general de recordatorios (RF-18). Esquema v2.
+  BoolColumn get remindersEnabled => boolean().withDefault(const Constant(true))();
+
+  /// Cantidad de avisos previos por clase (RF-20). Esquema v2.
+  IntColumn get reminderCount => integer().withDefault(const Constant(1))();
+
+  /// Intervalo en minutos entre avisos previos (el primero sale N min antes).
   IntColumn get classNotificationMinutes => integer().withDefault(const Constant(10))();
   BoolColumn get enableStartClassNotification =>
       boolean().withDefault(const Constant(true))();

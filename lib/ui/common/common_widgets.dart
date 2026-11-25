@@ -122,6 +122,36 @@ class BulletList extends StatelessWidget {
       );
 }
 
+/// Diálogo de confirmación obligatorio antes de cualquier borrado (RF-2).
+/// Devuelve `true` solo si el usuario pulsa "Eliminar".
+Future<bool> confirmDeletion(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String confirmLabel = 'Eliminar',
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: const Icon(Icons.delete_outline),
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(ctx).colorScheme.error,
+            foregroundColor: Theme.of(ctx).colorScheme.onError,
+          ),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+  return confirmed ?? false;
+}
+
 void showSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()

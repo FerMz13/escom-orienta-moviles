@@ -12,7 +12,7 @@ import 'app_router.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.onDispose(refresh.dispose);
-  ref.listen(authControllerProvider, (_, __) => refresh.value++);
+  ref.listen(authControllerProvider, (_, _) => refresh.value++);
 
   final router = createAppRouter(
     refreshListenable: refresh,

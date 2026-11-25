@@ -126,6 +126,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ],
                     ),
+                    if (!ref.watch(authControllerProvider).isGuest) ...[
+                      const Divider(height: 24),
+                      // RF-34: todas las funciones se pueden usar sin cuenta.
+                      OutlinedButton.icon(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                await ref.read(authControllerProvider.notifier).continueAsGuest();
+                                if (context.mounted) context.go(AppRoutes.home);
+                              },
+                        icon: const Icon(Icons.person_outline),
+                        label: const Text('Usar sin cuenta'),
+                      ),
+                    ],
                   ],
                 ),
               ),

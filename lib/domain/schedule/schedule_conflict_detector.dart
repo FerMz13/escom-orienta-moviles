@@ -29,6 +29,22 @@ abstract final class ScheduleConflictDetector {
             (saved) => saved.dayOfWeek == draft.dayOfWeek && overlap(saved, draft),
           ));
 
+  /// Clases de [existing] que se traslapan con [draft] en el mismo día
+  /// (RF-39). Al editar, pasa [excludeId] con el id de la propia sesión para
+  /// que no choque consigo misma.
+  static List<T> conflictsFor<T extends ClassSessionData>(
+    List<T> existing,
+    ClassSessionData draft, {
+    int? excludeId,
+  }) =>
+      [
+        for (final saved in existing)
+          if (!(excludeId != null && saved is ClassSession && saved.id == excludeId) &&
+              saved.dayOfWeek == draft.dayOfWeek &&
+              overlap(saved, draft))
+            saved,
+      ];
+
   /// Todos los pares en conflicto, agrupados por día y en orden de aparición.
   static List<ScheduleConflict> detect(List<ClassSessionData> classes) {
     final byDay = <int, List<ClassSessionData>>{};

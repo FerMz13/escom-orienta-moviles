@@ -1136,6 +1136,33 @@ class $LocalSettingsTableTable extends LocalSettingsTable
         requiredDuringInsert: false,
         defaultValue: const Constant(''),
       );
+  static const VerificationMeta _remindersEnabledMeta = const VerificationMeta(
+    'remindersEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> remindersEnabled = GeneratedColumn<bool>(
+    'reminders_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("reminders_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _reminderCountMeta = const VerificationMeta(
+    'reminderCount',
+  );
+  @override
+  late final GeneratedColumn<int> reminderCount = GeneratedColumn<int>(
+    'reminder_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
   static const VerificationMeta _classNotificationMinutesMeta =
       const VerificationMeta('classNotificationMinutes');
   @override
@@ -1208,6 +1235,8 @@ class $LocalSettingsTableTable extends LocalSettingsTable
     themeMode,
     schedulePaletteMode,
     customScheduleColors,
+    remindersEnabled,
+    reminderCount,
     classNotificationMinutes,
     enableStartClassNotification,
     notificationScope,
@@ -1256,6 +1285,24 @@ class $LocalSettingsTableTable extends LocalSettingsTable
         customScheduleColors.isAcceptableOrUnknown(
           data['custom_schedule_colors']!,
           _customScheduleColorsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reminders_enabled')) {
+      context.handle(
+        _remindersEnabledMeta,
+        remindersEnabled.isAcceptableOrUnknown(
+          data['reminders_enabled']!,
+          _remindersEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('reminder_count')) {
+      context.handle(
+        _reminderCountMeta,
+        reminderCount.isAcceptableOrUnknown(
+          data['reminder_count']!,
+          _reminderCountMeta,
         ),
       );
     }
@@ -1333,6 +1380,14 @@ class $LocalSettingsTableTable extends LocalSettingsTable
         DriftSqlType.string,
         data['${effectivePrefix}custom_schedule_colors'],
       )!,
+      remindersEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}reminders_enabled'],
+      )!,
+      reminderCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_count'],
+      )!,
       classNotificationMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}class_notification_minutes'],
@@ -1369,6 +1424,14 @@ class LocalSettingsRow extends DataClass
   final String themeMode;
   final String schedulePaletteMode;
   final String customScheduleColors;
+
+  /// Interruptor general de recordatorios (RF-18). Esquema v2.
+  final bool remindersEnabled;
+
+  /// Cantidad de avisos previos por clase (RF-20). Esquema v2.
+  final int reminderCount;
+
+  /// Intervalo en minutos entre avisos previos (el primero sale N min antes).
   final int classNotificationMinutes;
   final bool enableStartClassNotification;
   final String notificationScope;
@@ -1380,6 +1443,8 @@ class LocalSettingsRow extends DataClass
     required this.themeMode,
     required this.schedulePaletteMode,
     required this.customScheduleColors,
+    required this.remindersEnabled,
+    required this.reminderCount,
     required this.classNotificationMinutes,
     required this.enableStartClassNotification,
     required this.notificationScope,
@@ -1394,6 +1459,8 @@ class LocalSettingsRow extends DataClass
     map['theme_mode'] = Variable<String>(themeMode);
     map['schedule_palette_mode'] = Variable<String>(schedulePaletteMode);
     map['custom_schedule_colors'] = Variable<String>(customScheduleColors);
+    map['reminders_enabled'] = Variable<bool>(remindersEnabled);
+    map['reminder_count'] = Variable<int>(reminderCount);
     map['class_notification_minutes'] = Variable<int>(classNotificationMinutes);
     map['enable_start_class_notification'] = Variable<bool>(
       enableStartClassNotification,
@@ -1411,6 +1478,8 @@ class LocalSettingsRow extends DataClass
       themeMode: Value(themeMode),
       schedulePaletteMode: Value(schedulePaletteMode),
       customScheduleColors: Value(customScheduleColors),
+      remindersEnabled: Value(remindersEnabled),
+      reminderCount: Value(reminderCount),
       classNotificationMinutes: Value(classNotificationMinutes),
       enableStartClassNotification: Value(enableStartClassNotification),
       notificationScope: Value(notificationScope),
@@ -1434,6 +1503,8 @@ class LocalSettingsRow extends DataClass
       customScheduleColors: serializer.fromJson<String>(
         json['customScheduleColors'],
       ),
+      remindersEnabled: serializer.fromJson<bool>(json['remindersEnabled']),
+      reminderCount: serializer.fromJson<int>(json['reminderCount']),
       classNotificationMinutes: serializer.fromJson<int>(
         json['classNotificationMinutes'],
       ),
@@ -1456,6 +1527,8 @@ class LocalSettingsRow extends DataClass
       'themeMode': serializer.toJson<String>(themeMode),
       'schedulePaletteMode': serializer.toJson<String>(schedulePaletteMode),
       'customScheduleColors': serializer.toJson<String>(customScheduleColors),
+      'remindersEnabled': serializer.toJson<bool>(remindersEnabled),
+      'reminderCount': serializer.toJson<int>(reminderCount),
       'classNotificationMinutes': serializer.toJson<int>(
         classNotificationMinutes,
       ),
@@ -1474,6 +1547,8 @@ class LocalSettingsRow extends DataClass
     String? themeMode,
     String? schedulePaletteMode,
     String? customScheduleColors,
+    bool? remindersEnabled,
+    int? reminderCount,
     int? classNotificationMinutes,
     bool? enableStartClassNotification,
     String? notificationScope,
@@ -1485,6 +1560,8 @@ class LocalSettingsRow extends DataClass
     themeMode: themeMode ?? this.themeMode,
     schedulePaletteMode: schedulePaletteMode ?? this.schedulePaletteMode,
     customScheduleColors: customScheduleColors ?? this.customScheduleColors,
+    remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+    reminderCount: reminderCount ?? this.reminderCount,
     classNotificationMinutes:
         classNotificationMinutes ?? this.classNotificationMinutes,
     enableStartClassNotification:
@@ -1504,6 +1581,12 @@ class LocalSettingsRow extends DataClass
       customScheduleColors: data.customScheduleColors.present
           ? data.customScheduleColors.value
           : this.customScheduleColors,
+      remindersEnabled: data.remindersEnabled.present
+          ? data.remindersEnabled.value
+          : this.remindersEnabled,
+      reminderCount: data.reminderCount.present
+          ? data.reminderCount.value
+          : this.reminderCount,
       classNotificationMinutes: data.classNotificationMinutes.present
           ? data.classNotificationMinutes.value
           : this.classNotificationMinutes,
@@ -1530,6 +1613,8 @@ class LocalSettingsRow extends DataClass
           ..write('themeMode: $themeMode, ')
           ..write('schedulePaletteMode: $schedulePaletteMode, ')
           ..write('customScheduleColors: $customScheduleColors, ')
+          ..write('remindersEnabled: $remindersEnabled, ')
+          ..write('reminderCount: $reminderCount, ')
           ..write('classNotificationMinutes: $classNotificationMinutes, ')
           ..write(
             'enableStartClassNotification: $enableStartClassNotification, ',
@@ -1548,6 +1633,8 @@ class LocalSettingsRow extends DataClass
     themeMode,
     schedulePaletteMode,
     customScheduleColors,
+    remindersEnabled,
+    reminderCount,
     classNotificationMinutes,
     enableStartClassNotification,
     notificationScope,
@@ -1563,6 +1650,8 @@ class LocalSettingsRow extends DataClass
           other.themeMode == this.themeMode &&
           other.schedulePaletteMode == this.schedulePaletteMode &&
           other.customScheduleColors == this.customScheduleColors &&
+          other.remindersEnabled == this.remindersEnabled &&
+          other.reminderCount == this.reminderCount &&
           other.classNotificationMinutes == this.classNotificationMinutes &&
           other.enableStartClassNotification ==
               this.enableStartClassNotification &&
@@ -1577,6 +1666,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
   final Value<String> themeMode;
   final Value<String> schedulePaletteMode;
   final Value<String> customScheduleColors;
+  final Value<bool> remindersEnabled;
+  final Value<int> reminderCount;
   final Value<int> classNotificationMinutes;
   final Value<bool> enableStartClassNotification;
   final Value<String> notificationScope;
@@ -1588,6 +1679,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
     this.themeMode = const Value.absent(),
     this.schedulePaletteMode = const Value.absent(),
     this.customScheduleColors = const Value.absent(),
+    this.remindersEnabled = const Value.absent(),
+    this.reminderCount = const Value.absent(),
     this.classNotificationMinutes = const Value.absent(),
     this.enableStartClassNotification = const Value.absent(),
     this.notificationScope = const Value.absent(),
@@ -1600,6 +1693,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
     this.themeMode = const Value.absent(),
     this.schedulePaletteMode = const Value.absent(),
     this.customScheduleColors = const Value.absent(),
+    this.remindersEnabled = const Value.absent(),
+    this.reminderCount = const Value.absent(),
     this.classNotificationMinutes = const Value.absent(),
     this.enableStartClassNotification = const Value.absent(),
     this.notificationScope = const Value.absent(),
@@ -1612,6 +1707,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
     Expression<String>? themeMode,
     Expression<String>? schedulePaletteMode,
     Expression<String>? customScheduleColors,
+    Expression<bool>? remindersEnabled,
+    Expression<int>? reminderCount,
     Expression<int>? classNotificationMinutes,
     Expression<bool>? enableStartClassNotification,
     Expression<String>? notificationScope,
@@ -1626,6 +1723,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
         'schedule_palette_mode': schedulePaletteMode,
       if (customScheduleColors != null)
         'custom_schedule_colors': customScheduleColors,
+      if (remindersEnabled != null) 'reminders_enabled': remindersEnabled,
+      if (reminderCount != null) 'reminder_count': reminderCount,
       if (classNotificationMinutes != null)
         'class_notification_minutes': classNotificationMinutes,
       if (enableStartClassNotification != null)
@@ -1643,6 +1742,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
     Value<String>? themeMode,
     Value<String>? schedulePaletteMode,
     Value<String>? customScheduleColors,
+    Value<bool>? remindersEnabled,
+    Value<int>? reminderCount,
     Value<int>? classNotificationMinutes,
     Value<bool>? enableStartClassNotification,
     Value<String>? notificationScope,
@@ -1655,6 +1756,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
       themeMode: themeMode ?? this.themeMode,
       schedulePaletteMode: schedulePaletteMode ?? this.schedulePaletteMode,
       customScheduleColors: customScheduleColors ?? this.customScheduleColors,
+      remindersEnabled: remindersEnabled ?? this.remindersEnabled,
+      reminderCount: reminderCount ?? this.reminderCount,
       classNotificationMinutes:
           classNotificationMinutes ?? this.classNotificationMinutes,
       enableStartClassNotification:
@@ -1686,6 +1789,12 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
       map['custom_schedule_colors'] = Variable<String>(
         customScheduleColors.value,
       );
+    }
+    if (remindersEnabled.present) {
+      map['reminders_enabled'] = Variable<bool>(remindersEnabled.value);
+    }
+    if (reminderCount.present) {
+      map['reminder_count'] = Variable<int>(reminderCount.value);
     }
     if (classNotificationMinutes.present) {
       map['class_notification_minutes'] = Variable<int>(
@@ -1719,6 +1828,8 @@ class LocalSettingsTableCompanion extends UpdateCompanion<LocalSettingsRow> {
           ..write('themeMode: $themeMode, ')
           ..write('schedulePaletteMode: $schedulePaletteMode, ')
           ..write('customScheduleColors: $customScheduleColors, ')
+          ..write('remindersEnabled: $remindersEnabled, ')
+          ..write('reminderCount: $reminderCount, ')
           ..write('classNotificationMinutes: $classNotificationMinutes, ')
           ..write(
             'enableStartClassNotification: $enableStartClassNotification, ',
@@ -2539,6 +2650,8 @@ typedef $$LocalSettingsTableTableCreateCompanionBuilder =
       Value<String> themeMode,
       Value<String> schedulePaletteMode,
       Value<String> customScheduleColors,
+      Value<bool> remindersEnabled,
+      Value<int> reminderCount,
       Value<int> classNotificationMinutes,
       Value<bool> enableStartClassNotification,
       Value<String> notificationScope,
@@ -2552,6 +2665,8 @@ typedef $$LocalSettingsTableTableUpdateCompanionBuilder =
       Value<String> themeMode,
       Value<String> schedulePaletteMode,
       Value<String> customScheduleColors,
+      Value<bool> remindersEnabled,
+      Value<int> reminderCount,
       Value<int> classNotificationMinutes,
       Value<bool> enableStartClassNotification,
       Value<String> notificationScope,
@@ -2590,6 +2705,16 @@ class $$LocalSettingsTableTableFilterComposer
 
   ColumnFilters<String> get customScheduleColors => $composableBuilder(
     column: $table.customScheduleColors,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get remindersEnabled => $composableBuilder(
+    column: $table.remindersEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderCount => $composableBuilder(
+    column: $table.reminderCount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2653,6 +2778,16 @@ class $$LocalSettingsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get remindersEnabled => $composableBuilder(
+    column: $table.remindersEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reminderCount => $composableBuilder(
+    column: $table.reminderCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get classNotificationMinutes => $composableBuilder(
     column: $table.classNotificationMinutes,
     builder: (column) => ColumnOrderings(column),
@@ -2704,6 +2839,16 @@ class $$LocalSettingsTableTableAnnotationComposer
 
   GeneratedColumn<String> get customScheduleColors => $composableBuilder(
     column: $table.customScheduleColors,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get remindersEnabled => $composableBuilder(
+    column: $table.remindersEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get reminderCount => $composableBuilder(
+    column: $table.reminderCount,
     builder: (column) => column,
   );
 
@@ -2778,6 +2923,8 @@ class $$LocalSettingsTableTableTableManager
                 Value<String> themeMode = const Value.absent(),
                 Value<String> schedulePaletteMode = const Value.absent(),
                 Value<String> customScheduleColors = const Value.absent(),
+                Value<bool> remindersEnabled = const Value.absent(),
+                Value<int> reminderCount = const Value.absent(),
                 Value<int> classNotificationMinutes = const Value.absent(),
                 Value<bool> enableStartClassNotification = const Value.absent(),
                 Value<String> notificationScope = const Value.absent(),
@@ -2789,6 +2936,8 @@ class $$LocalSettingsTableTableTableManager
                 themeMode: themeMode,
                 schedulePaletteMode: schedulePaletteMode,
                 customScheduleColors: customScheduleColors,
+                remindersEnabled: remindersEnabled,
+                reminderCount: reminderCount,
                 classNotificationMinutes: classNotificationMinutes,
                 enableStartClassNotification: enableStartClassNotification,
                 notificationScope: notificationScope,
@@ -2802,6 +2951,8 @@ class $$LocalSettingsTableTableTableManager
                 Value<String> themeMode = const Value.absent(),
                 Value<String> schedulePaletteMode = const Value.absent(),
                 Value<String> customScheduleColors = const Value.absent(),
+                Value<bool> remindersEnabled = const Value.absent(),
+                Value<int> reminderCount = const Value.absent(),
                 Value<int> classNotificationMinutes = const Value.absent(),
                 Value<bool> enableStartClassNotification = const Value.absent(),
                 Value<String> notificationScope = const Value.absent(),
@@ -2813,6 +2964,8 @@ class $$LocalSettingsTableTableTableManager
                 themeMode: themeMode,
                 schedulePaletteMode: schedulePaletteMode,
                 customScheduleColors: customScheduleColors,
+                remindersEnabled: remindersEnabled,
+                reminderCount: reminderCount,
                 classNotificationMinutes: classNotificationMinutes,
                 enableStartClassNotification: enableStartClassNotification,
                 notificationScope: notificationScope,

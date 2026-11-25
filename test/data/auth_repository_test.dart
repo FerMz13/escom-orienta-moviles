@@ -8,12 +8,20 @@ import 'package:flutter_test/flutter_test.dart';
 /// Sesión en memoria (sin almacenamiento seguro del sistema).
 class _MemSession implements SessionStore {
   String? _id;
+  bool _guest = false;
   @override
   Future<String?> readUserId() async => _id;
   @override
   Future<void> writeUserId(String userId) async => _id = userId;
   @override
-  Future<void> clear() async => _id = null;
+  Future<bool> readGuest() async => _guest;
+  @override
+  Future<void> writeGuest(bool guest) async => _guest = guest;
+  @override
+  Future<void> clear() async {
+    _id = null;
+    _guest = false;
+  }
 }
 
 void main() {
@@ -72,6 +80,22 @@ void main() {
 
     final ok = await repo.login(email: 'alumno@ipn.mx', password: 'Secreta123');
     expect(ok, isA<AuthSuccess>());
+  });
+
+  test('RF-34: modo invitado sin cuenta; iniciar sesión lo reemplaza', () async {
+    expect(await repo.isGuestSession(), isFalse);
+    await repo.continueAsGuest();
+    expect(await repo.isGuestSession(), isTrue);
+    expect(await repo.currentUser(), isNull);
+
+    await register();
+    expect(await repo.isGuestSession(), isFalse);
+    expect(await repo.currentUser(), isNotNull);
+
+    await repo.logout();
+    await repo.continueAsGuest();
+    await repo.logout();
+    expect(await repo.isGuestSession(), isFalse);
   });
 
   test('cambio de contraseña: la nueva funciona y la vieja no', () async {

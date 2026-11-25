@@ -10,7 +10,7 @@ ESCOM Orienta Móviles is a Flutter/Dart app for students of ESCOM-IPN: indoor b
 flutter pub get                 # install dependencies
 flutter run                     # run on connected device/emulator
 flutter analyze                 # lint (flutter_lints; android/ ios/ build/ excluded)
-flutter test                    # run all tests (~68 tests under test/)
+flutter test                    # run all tests under test/
 flutter test test/domain/a_star_route_finder_test.dart   # run one file
 flutter test --name "substring" # run tests whose name matches
 flutter build apk               # build Android release
@@ -24,8 +24,8 @@ Android build requires **Android SDK Platform 37** (`compileSdk = 37`), JDK 17, 
 
 ## Critical conventions
 
-- **UI imports `package:material_ui/material_ui.dart`, never `package:flutter/material.dart`.** `material_ui` is a pub.dev package that re-exports Flutter Material; all 14 UI files use it. Match this when adding files.
-- **Drift uses committed code generation.** `*.g.dart` files (e.g. `app_database.g.dart`, DAO `.g.dart`) are checked in. After changing `lib/data/database/tables.dart`, any DAO, or `@DriftDatabase`, you must re-run `build_runner` or the build breaks. `schemaVersion` is 1 with no migrations yet — bump it and add a migration when changing the schema.
+- **UI imports `package:material_ui/material_ui.dart`, never `package:flutter/material.dart`.** `material_ui` is a pub.dev package that re-exports Flutter Material; every UI file uses it. Match this when adding files.
+- **Drift uses committed code generation.** `*.g.dart` files (e.g. `app_database.g.dart`, DAO `.g.dart`) are checked in. After changing `lib/data/database/tables.dart`, any DAO, or `@DriftDatabase`, you must re-run `build_runner` or the build breaks. `schemaVersion` is 2 (v2 added `remindersEnabled`/`reminderCount` to `local_settings`); when changing the schema, bump it, add a step in `onUpgrade`, and extend `test/data/database_migration_test.dart`.
 - Foreign keys are enabled per-connection via `PRAGMA foreign_keys = ON` in the migration `beforeOpen` (SQLite defaults them off); cascade delete of class sessions depends on it.
 
 ## Architecture
@@ -54,8 +54,8 @@ Offline, read from `manifest.json` + per-resource JSON under `academic/` and `se
 
 ### Auth, session, notifications & sensors (added for DAMN-20271)
 - **Local offline auth** (`lib/domain/auth/`, `lib/data/auth/`): users are stored in a private JSON file (`escom_users.json` via `path_provider`), **not in Drift** — this deliberately avoids `build_runner` codegen. Passwords and security answers are SHA-256 + per-field salt (`PasswordHasher`); the session token lives in `flutter_secure_storage` (`SecureSessionStore`). Swap implementations in tests via `ProviderScope` overrides (`userLocalDataSourceProvider` accepts a `UserFileProvider`; `sessionStoreProvider` is an interface).
-- **Session gate**: `AuthController` (Riverpod `Notifier<AuthState>`, `lib/ui/auth/auth_controller.dart`) drives a `go_router` `redirect` via `appRouterProvider` (`lib/navigation/router_provider.dart`). Unknown → `/cargando` splash; unauthenticated → `/login`; authenticated users are kept out of the auth routes. `main.dart` builds the app from `appRouterProvider` (no injected `router` param anymore — tests override `appRouterProvider`).
-- **Notifications** (`lib/data/notifications/notification_service.dart`): `notificationSyncProvider` reschedules class reminders whenever the active schedule or settings change; default timezone `America/Mexico_City`. Settings fields already existed in `LocalSettings`.
+- **Session gate**: `AuthController` (Riverpod `Notifier<AuthState>`, `lib/ui/auth/auth_controller.dart`) drives a `go_router` `redirect` via `appRouterProvider` (`lib/navigation/router_provider.dart`). Unknown → `/cargando` splash; unauthenticated → `/login`; authenticated users are kept out of the auth routes. **Guest mode** (`AuthStatus.guest`, original requirement RF-34 "use without an account") is persisted in `SessionStore` and grants full app access; guests may still open login/register. `main.dart` builds the app from `appRouterProvider` (no injected `router` param anymore — tests override `appRouterProvider`).
+- **Notifications**: `ReminderPlanner` (`lib/domain/schedule/reminder_planner.dart`, pure Dart, tested) decides which weekly reminders exist; `NotificationService` only schedules them. `notificationSyncProvider` reschedules whenever the active schedule or settings change; default timezone `America/Mexico_City`. Scheduled notifications depend on the `ScheduledNotificationReceiver`/`ScheduledNotificationBootReceiver` entries in `AndroidManifest.xml` — don't remove them. User-facing settings live in `lib/ui/settings/settings_screen.dart` (`/ajustes`).
 - **Sensors** (`lib/data/device/`): `AvatarImageService` (camera/gallery) and `LocationService` (GPS). Platform permissions added to `AndroidManifest.xml` and iOS `Info.plist`.
 - **Global error handling**: `main.dart` wraps `runApp` in `runZonedGuarded` + `FlutterError.onError` + a friendly `ErrorWidget.builder`.
 - New deps (run `flutter pub get`): `crypto`, `flutter_secure_storage`, `image_picker`, `geolocator`. Compliance notes live in [CAMBIOS_DAMN.md](CAMBIOS_DAMN.md); UML in [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
